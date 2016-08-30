@@ -1,3 +1,7 @@
+/*
+ * This program is licensed under MIT license. For full text of
+ * the license, see ./LICENSE file.
+ */
 #define PURPLE_PLUGINS
 
 #include <stdlib.h>
@@ -5,14 +9,8 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <windows.h>
 #include <errno.h>
-#ifdef _WIN32
-  #include <windows.h>
-#else
-  #include <unistd.h>
-  #include <sys/types.h>
-  #include <sys/wait.h>
-#endif
 
 #include <glib.h>
 
@@ -58,7 +56,7 @@ static char* getdirname(const char const *file)
         GetCurrentDirectory(MAX_PATH, result);
         return result;
 #else
-        return getcwd(NULL, 0);
+        return get_current_dir_name();
 #endif
     }
     result = (char*) malloc((occurence - file + 1) * sizeof(char));
@@ -171,7 +169,7 @@ char* latex_to_png(const char* full_text, size_t from, size_t len)
     if (!font_size)
         font_size = DEFAULT_FONTSIZE;
 
-    fprintf(tex_file, LATEX_FORMAT_STRING, bgcolor, fgcolor, (int) len, full_text + from); 
+    fprintf(tex_file, LATEX_FORMAT_STRING, bgcolor, fgcolor, len, full_text + from); 
     
     tmp_dir = getdirname(file_tex);
     if (!tmp_dir || chdir(tmp_dir))
@@ -253,7 +251,7 @@ static gboolean analyze(char **message, size_t from)
         if (start >= length || end >= length)
             break;
 
-        purple_debug_info("LaTeX", "Found occurence in msg '%s' (at %zu to %zu)\n", *message, start, end);
+        purple_debug_info("LaTeX", "Found occurence in msg '%s' (at %u to %u)\n", *message, start, end);
         sbstr_len = end - start - strlen(LATEX_DELIMITER);
         if (!(png_file = latex_to_png(*message, start + strlen(LATEX_DELIMITER), sbstr_len)))
         {
@@ -296,7 +294,7 @@ static gboolean analyze(char **message, size_t from)
         length = strlen(*message);
 
         from = start + strlen(LATEX_DELIMITER) + img_text_len; 
-        purple_debug_info("LaTeX", "Looking for another occurence beginning at %zu\n", from);
+        purple_debug_info("LaTeX", "Looking for another occurence beginning at %u\n", from);
     }
     return TRUE;
 }

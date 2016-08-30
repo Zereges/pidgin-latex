@@ -1,3 +1,8 @@
+/*
+ * This program is licensed under MIT license. For full text of
+ * the license, see ./LICENSE file.
+ */
+ 
 #include <glib.h>
 
 #define PLUGIN_PREF_ROOT "/plugins/core/latex"
