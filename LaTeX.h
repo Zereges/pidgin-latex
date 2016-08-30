@@ -41,7 +41,7 @@
 
 #define MAX_COMMAND_SIZE 256
 #define LATEX_COMMAND_STRING "latex -interaction=batchmode %s"
-#define DVIPNG_COMMAND_STRING "dvipng D %d -o %s %s"
+#define DVIPNG_COMMAND_STRING "dvipng -D %d -o %s %s"
 
 /**
  * Returns zero-based position of first occurence of 'text' in 'string'.
