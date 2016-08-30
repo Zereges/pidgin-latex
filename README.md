@@ -38,7 +38,7 @@ Plugin is configurable directly from pidgin GUI. It has following options
 - font size: Desired font size of formula in the image. Default value is 9px.
 
 ### Download
-Windows users can download plugin from this link.  
+Windows users can download plugin from [this link](https://github.com/Zereges/pidgin-latex/releases/download/v1.1/LaTeX.dll).  
 Unix users have to compile it, package is not available.
 
 ### Installation
