@@ -21,10 +21,10 @@
     "\\definecolor{bgcolor}{RGB}{%s}" \
     "\\definecolor{fgcolor}{RGB}{%s}" \
     "\\begin{document}" \
-    "\\setlength{\\fboxsep}{0pt}" \
+    "\\setlength{\\fboxsep}{0.5pt}" \
     "\\colorbox{bgcolor}{" \
     "\\color{fgcolor}" \
-    "$%.*s$" \
+    "$%s$" \
     "}" \
     "\\end{document}"
 
@@ -54,6 +54,19 @@
  * text: text to look for
  */
 size_t strstr_index(const char* string, size_t from, const char* text);
+
+/**
+ * Replaces all occurences of 'what' by 'repl' in 'string'.
+ * 'string' is reallocated to hold new string.
+ */
+size_t strrep(char* string, const char* what, const char* repl);
+
+#ifdef _WIN32
+/**
+ * POSIX strndup, duplicates string up to size 'n'.
+ */
+char * strndup(const char* str, size_t n);
+#endif
 
 /**
  * Returns number of digits in 'number' considered 10-based representation.

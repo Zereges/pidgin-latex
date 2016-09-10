@@ -9,8 +9,13 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
-#include <windows.h>
 #include <errno.h>
+#ifdef _WIN32
+  #include <windows.h>
+#else
+  #include <sys/types.h>
+  #include <sys/wait.h>
+#endif
 
 #include <glib.h>
 
@@ -29,6 +34,59 @@ size_t strstr_index(const char* string, size_t from, const char* text)
         return strlen(string);
     return result - string;
 }
+
+size_t strrep(char* string, const char* what, const char* repl)
+{
+    size_t occurences = 0,
+        string_len = strlen(string),
+        what_len = strlen(what),
+        repl_len = strlen(repl),
+        new_len;
+
+    char* start = string;
+
+    while ((start = strstr(start, what)) != NULL)
+    {
+        ++occurences;
+        ++start;
+    }
+
+    new_len = string_len + occurences * (repl_len - what_len);
+    
+    if (new_len > string_len)
+        string = realloc(string, (new_len + 1) * sizeof(char));
+
+    start = string;
+    while ((start = strstr(start, what)) != NULL)
+    {
+        memmove(start + repl_len, start + what_len, string_len - (start - string) - what_len);
+        memcpy(start, repl, repl_len);
+        if (repl_len > what_len)
+            start += repl_len - what_len;
+        ++start;
+    }
+
+//    if (new_len < string_len)
+//        string = realloc(string, (new_len + 1) * sizeof(char)); // With Mingw, this corrupts memory somehow
+    string[new_len] = '\0';
+
+    return occurences;
+}
+
+#ifdef _WIN32
+char * strndup(const char* str, size_t n)
+{
+    char* res;
+    size_t len = strlen(str);
+    if (n < len)
+        len = n;
+
+    res = (char*) malloc((len + 1) * sizeof(char));
+    memcpy(res, str, len);
+    res[len] = '\0';
+    return res;
+}
+#endif
 
 int intlen(int number)
 {
@@ -56,7 +114,7 @@ static char* getdirname(const char const *file)
         GetCurrentDirectory(MAX_PATH, result);
         return result;
 #else
-        return get_current_dir_name();
+        return getcwd(NULL, 0);
 #endif
     }
     result = (char*) malloc((occurence - file + 1) * sizeof(char));
@@ -142,6 +200,7 @@ int font_size_to_resolution(int font_size)
 char* latex_to_png(const char* full_text, size_t from, size_t len)
 {
     char *tmp_file_name, *file_tex, *file_dvi, *file_png, *file_aux, *file_log, *tmp_dir;
+    char* latex_text;
     const char *bgcolor, *fgcolor;
     char latex_command[MAX_COMMAND_SIZE], dvipng_command[MAX_COMMAND_SIZE];
     FILE *tex_file;
@@ -155,6 +214,7 @@ char* latex_to_png(const char* full_text, size_t from, size_t len)
     purple_debug_info("LaTeX", "Preparing to call LaTeX\n");
 
     file_tex = concat(tmp_file_name, TEX_EXT);
+    purple_debug_info("LaTeX", "Opening file '%s' for writing.\n", file_tex);
     if (!(tex_file = fopen(file_tex, "w")))
     {
         purple_debug_error("LaTeX", "Failed to open tmp file '%s' (errno %d).\n", file_tex, errno);
@@ -169,7 +229,15 @@ char* latex_to_png(const char* full_text, size_t from, size_t len)
     if (!font_size)
         font_size = DEFAULT_FONTSIZE;
 
-    fprintf(tex_file, LATEX_FORMAT_STRING, bgcolor, fgcolor, len, full_text + from); 
+    latex_text = strndup(full_text + from, len);
+    purple_debug_info("LaTeX", "Unescaping <br> in: '%s'\n", latex_text);
+    strrep(latex_text, "<br>", " ");
+    purple_debug_info("LaTeX", "Unescaping &amp; in: '%s'\n", latex_text);
+    strrep(latex_text, "&amp;", "&");
+
+    purple_debug_info("LaTeX", "Writing to tex file: '%s'\n", latex_text);
+    fprintf(tex_file, LATEX_FORMAT_STRING, bgcolor, fgcolor, latex_text);
+    free(latex_text);
     
     tmp_dir = getdirname(file_tex);
     if (!tmp_dir || chdir(tmp_dir))
@@ -193,7 +261,6 @@ char* latex_to_png(const char* full_text, size_t from, size_t len)
     if ((i = system_call_command_string(latex_command)))
     {
         purple_debug_error("LaTeX", "latex call failed with status '%d'\n", i);
-        unlink(file_tex);
         free(tmp_file_name);
         free(file_tex);
         return NULL;
@@ -209,9 +276,6 @@ char* latex_to_png(const char* full_text, size_t from, size_t len)
     if ((i = system_call_command_string(dvipng_command)))
     {
         purple_debug_error("LaTeX", "dvipng call failed with status '%d'\n", i);
-        unlink(file_aux);
-        unlink(file_log);
-        unlink(file_tex);
         free(file_aux);
         free(file_log);
         free(file_dvi);
@@ -251,7 +315,7 @@ static gboolean analyze(char **message, size_t from)
         if (start >= length || end >= length)
             break;
 
-        purple_debug_info("LaTeX", "Found occurence in msg '%s' (at %u to %u)\n", *message, start, end);
+        purple_debug_info("LaTeX", "Found occurence in msg '%s' (at %d to %d)\n", *message, (int)start, (int)end);
         sbstr_len = end - start - strlen(LATEX_DELIMITER);
         if (!(png_file = latex_to_png(*message, start + strlen(LATEX_DELIMITER), sbstr_len)))
         {
@@ -294,7 +358,7 @@ static gboolean analyze(char **message, size_t from)
         length = strlen(*message);
 
         from = start + strlen(LATEX_DELIMITER) + img_text_len; 
-        purple_debug_info("LaTeX", "Looking for another occurence beginning at %u\n", from);
+        purple_debug_info("LaTeX", "Looking for another occurence beginning at %d\n", (int)from);
     }
     return TRUE;
 }
@@ -360,7 +424,7 @@ static PurplePluginInfo info = {
 
     "core-plugin_pack-latex",
     "LaTeX",
-    "1.1",
+    "1.2",
 
     "Displays output of LaTeX commands as image directly to chat window.",
     "Place LaTeX command into $$latex$$ tags and pidgin will call latex and dvipng to creatte image.\nSee website for more information.",
