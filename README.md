@@ -38,7 +38,7 @@ Plugin is configurable directly from pidgin GUI. It has following options
 - font size: Desired font size of formula in the image. Default value is 9px.
 
 ### Download
-Windows users can download plugin from this link.  
+Windows users can download plugin from [this link](https://github.com/Zereges/pidgin-latex/releases/download/v1.2/LaTeX.dll).  
 Unix users have to compile it, package is not available.
 
 ### Installation
@@ -60,7 +60,6 @@ instead.
 ### ToDo
 - Retrieve bgcolor, fgcolor and font size from gtk settings, pidgin preferences or directly from message, whichever has higher priority.
 - Figure out how to resolve quite long (1second) Latex and dvipng calls which causes pidgin to stop responding.
-- Unescape newlines and ampersands back to their true form.
 
 ### Bugs
 Please report any bugs you found to zereges&lt;at&gt;ekirei.cz or message me directly at github. Attach debug widnow output or screenshots if necessary.
